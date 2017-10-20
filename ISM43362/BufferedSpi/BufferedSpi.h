@@ -25,6 +25,7 @@
 #define BUFFEREDSPI_H
  
 #include "mbed.h"
+#include "platform/platform.h"
 #include "MyBuffer.h"
 
 /** A spi port (SPI) for communication with wifi device
@@ -68,7 +69,7 @@
  *  @class BufferedSpi
  *  @brief Software buffers and interrupt driven tx and rx for Serial
  */  
-class BufferedSpi : public SPI 
+class BufferedSpi : public SPI, public FileHandle 
 {
 private:
     MyBuffer <char> _txbuf;
@@ -171,6 +172,41 @@ public:
      */
     virtual ssize_t read();
     virtual ssize_t read(int max);
+
+    /** Read the contents of a file into a buffer
+     *
+     *  Follows POSIX semantics:
+     *
+     *  * if no data is available, and non-blocking set return -EAGAIN
+     *  * if no data is available, and blocking set, wait until data is available
+     *  * If any data is available, call returns immediately
+     *
+     *  @param buffer   The buffer to read in to
+     *  @param length   The number of bytes to read
+     *  @return         The number of bytes read, 0 at end of file, negative error on failure
+     */
+    virtual ssize_t read(void* buffer, size_t length);
+    
+    /** Close a file
+     *
+     *  @return         0 on success, negative error code on failure
+     */
+    virtual int close();
+
+    /** Move the file position to a given offset from from a given location
+     *
+     * Not valid for a device type FileHandle like UARTSerial.
+     * In case of UARTSerial, returns ESPIPE
+     *
+     *  @param offset   The offset from whence to move to
+     *  @param whence   The start of where to seek
+     *      SEEK_SET to start from beginning of file,
+     *      SEEK_CUR to start from current position in file,
+     *      SEEK_END to start from end of file
+     *  @return         The new offset of the file, negative error code on failure
+     */
+    virtual off_t seek(off_t offset, int whence);
+    
 
     /** Attach a function to call whenever a serial interrupt is generated
      *  @param func A pointer to a void function, or 0 to set as none

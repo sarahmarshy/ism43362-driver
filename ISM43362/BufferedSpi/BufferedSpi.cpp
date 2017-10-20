@@ -171,12 +171,26 @@ ssize_t BufferedSpi::read()
     return this->read(0);
 }
 
-ssize_t BufferedSpi::read(int max)
+off_t BufferedSpi::seek(off_t offset, int whence)
+{
+    /*XXX lseek can be done theoratically, but is it sane to mark positions on a dynamically growing/shrinking
+     * buffer system (from an interrupt context) */
+    return -29;
+}
+
+int BufferedSpi::close()
+{
+    /* Does not let us pass a file descriptor. So how to close ?
+     * Also, does it make sense to close a device type file descriptor*/
+    return 0;
+}
+
+ssize_t BufferedSpi::read(void*buffer, size_t length)
 {
     int len = 0;
     int tmp;
     // TO DO : add SPI flush ! HAL_SPIEx_FlushRxFifo(&hspi);
-    
+    char *ptr = static_cast<char *>(buffer); 
     disable_nss();
     /* wait for data ready is up */
     while (dataready.read() == 0) {
@@ -193,7 +207,7 @@ ssize_t BufferedSpi::read(int max)
         }
         if (dataready.read() == 0) { /* end of reception reached */
             if ((tmp&0XFF00) == 0x1500){
-                if ((max != 0) && (len < max)) { // to remove once data > buff size is handled
+                if ((length != 0) && (len < length)) { // to remove once data > buff size is handled
                     _rxbuf = (char)(tmp & 0xFF);
                     len++;
                 }
@@ -201,20 +215,29 @@ ssize_t BufferedSpi::read(int max)
             }
         }
         // TO : CHECK HOW TO HANDLE CASE WHEN number read data > buff size
-        if ((max == 0) || ((max !=0) && (len < max))) {
+        if ((length == 0) || ((length !=0) && (len < length))) {
             _rxbuf = (char)(tmp & 0x00FF);
             _rxbuf = (char)((tmp >>8)& 0xFF);
             len += 2;
         }
         // to put back once the above case will be handled
-        // if ((max != 0) && (len >= max)) {
+        // if ((length != 0) && (len >= length)) {
         //    break;
         //}
     }
+    size_t data_read = 0;
+    while (data_read < length && _rxbuf.available()) {
+        *ptr = _rxbuf.get();
+        *ptr++; 
+        data_read++;
+    }
+
     disable_nss();
     
-    return len;
+    return data_read;
 }
+
+
 void BufferedSpi::rxIrq(void)
 {
     // read from the peripheral 

@@ -16,7 +16,7 @@
 
 #ifndef ISM43362_H
 #define ISM43362_H
-#include "ATParser.h"
+#include "ATCmdParser.h"
 
 #define ES_WIFI_MAX_SSID_NAME_SIZE                  32
 #define ES_WIFI_MAX_PSWD_NAME_SIZE                  32
@@ -214,7 +214,7 @@ public:
 
 private:
     BufferedSpi _bufferspi;
-    ATParser _parser;
+    ATCmdParser _parser;
     DigitalOut _resetpin;
     int _timeout;
     void reset_module(DigitalOut rstpin);
